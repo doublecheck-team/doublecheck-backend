@@ -4,13 +4,14 @@
 "use strict"
 
 const mysql = {};
-
 const engine = require("mysql2/promise");
 const { util, log } = require("../util");
 const CONFIG = global.CONFIG;
 
-mysql._poolCluster = null;
 mysql._runningBeat = false;
+
+mysql._writerPools = [];
+mysql._readerPools = [];
 
 mysql.TRANSACTION = {
     ROLLBACK: 0,
@@ -26,52 +27,41 @@ mysql.CONNECTION_TYPE = {
  * mysql 엔진 초기화
  * @returns
  */
-mysql.init = async () => {
+mysql.init = async function () {
     return new Promise((resolve, reject) => {
-        // 연결 객체 초기화 (https://www.npmjs.com/package/mysql2)
-        let poolCluster = engine.createPoolCluster();
-        
-        let connectionAdditionalOptions = {
-            waitForConnection: true,
-            enableKeepAlive: true,
-            maxIdle: CONFIG.database.connection.config.connectionLimit,
-            supportBigNumbers: true,
-            multipleStatements: true,
-            dateStrings: true,
-            decimalNumbers: true,
+    let connectionAdditionalOptions = {
+        waitForConnections: true,
+        enableKeepAlive: true,
+        maxIdle: CONFIG.database.connection.config.connectionLimit,
+        supportBigNumbers: true,
+        multipleStatements: true,
+        dateStrings: true,
+        decimalNumbers: true,
+        ...CONFIG.database.connection.config,
+    };
 
-            ...CONFIG.database.connection.config,
-        };
-
-        for (let v of CONFIG.database.connection.writer) {
-            poolCluster.add("W", {
-                ...connectionAdditionalOptions,
-                host: v.port,
-                port: v.port,
-            });
-        }
-
-        let readerIndex = 0;
-
-        for (let v of CONFIG.database.connection.reader) {
-            poolCluster.add(`R_${readerIndex++}`, {
-                ...connectionAdditionalOptions,
-                host: v.host,
-                port: v.port,
-            });
-        }
-
-        poolCluster.on("warn", (error) => {
-            log.warn(`MySQL - WARN: Connection warning (Error: ${error.stack})`);
+    // WRITER 풀 초기화
+    CONFIG.database.connection.writer.forEach((writer) => {
+        const pool = engine.createPool({
+            ...connectionAdditionalOptions,
+            host: writer.host,
+            port: writer.port,
         });
-
-        this._writerSelector = poolCluster.of("W");
-        this._readerSelector = poolCluster.of("R_*", "RR");
-
-        this._poolCluster = poolCluster;
-
-        this.testConnection(resolve, reject);
+        this._writerPools.push(pool);
     });
+
+    // READER 풀 초기화
+    CONFIG.database.connection.reader.forEach((reader) => {
+        const pool = engine.createPool({
+            ...connectionAdditionalOptions,
+            host: reader.host,
+            port: reader.port,
+        });
+        this._readerPools.push(pool);
+    });
+
+    this.testConnection(resolve, reject);
+});
 };
 
 /**
@@ -79,28 +69,24 @@ mysql.init = async () => {
  * @param {Function} resolve 성공 시
  * @param {Function} reject 실패 시
  */
-mysql.testConnection = () => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            let result = await this.query(`SELEC 1;`, [], { silent: true });
-            if (result.success) {
-                this.createBeatInterval();
-                log.info(`MySQL - Connection Check: OK!`);
+mysql.testConnection = async function (resolve, reject) {
+    let result = await this.query(`SELECT 1;`, [], { silent: true });
 
-                resolve();
-            }
-        } catch (error) {
-            log.info(`MySQL - Connection Test Failed: ${error}`);
+    if (result.success) {
+        this.createBeatInterval();
 
-            reject(error);
-        }
-    });
+        log.info(`MySQL - Connection check: OK!`);
+
+        resolve();
+    } else {
+        reject(new Error("Failed to test DB connection"));
+    }
 };
 
 /**
  * DB와 연결을 유지하기 위해 ping 패킷 전송 interval 생성
  */
-mysql.createBeatInterval = async () => {
+mysql.createBeatInterval = async function () {
     let res = await this.query(`SHOW SESSION VARIABLES LIKE 'wait_timeout'`, null, { silent: true });
 
     if (!res.success || res.rows.length === 0) {
@@ -120,7 +106,7 @@ mysql.createBeatInterval = async () => {
         return;
     }
 
-    let interval = Math.max(Math.floor(value / 2), 10) * 1000;
+    const interval = Math.max(Math.floor(value / 2), 30) * 1000;
 
     setInterval(() => this._runBeatPacket(), interval);
 };
@@ -128,8 +114,9 @@ mysql.createBeatInterval = async () => {
 /**
  * 연결을 지속적으로 유지하지 위해 ping 패킷 전송
  */
-mysql._runBeatPacket = async () => {
+mysql._runBeatPacket = async function () {
     if (this._runningBeat) return;
+
     this._runningBeat = true;
 
     await this.query(`SELECT 1;`, null, { silent: true });
@@ -142,12 +129,26 @@ mysql._runBeatPacket = async () => {
  * @param {mysql.CONNECTION_TYPE} connectionType
  * @returns {Connection} connection
  */
-mysql._getConnection = async (connectionType) => {
+mysql._getConnection = async function (connectionType) {
     try {
-        return await (connectionType === mysql.CONNECTION_TYPE.WRITER ? this._writerSelector : this._readerSelector).getConnection();
-    } catch (error) {
-        log.error(`MySQL - Connection Error (Error: ${error.stack ?? error})`);
+        let pools = connectionType === mysql.CONNECTION_TYPE.WRITER
+            ? this._writerPools
+            : this._readerPools;
 
+        for (let pool of pools) {
+            try {
+                const connection = await pool.getConnection();
+                if (connection) {
+                    return connection;
+                }
+            } catch (error) {
+                log.error(`MySQL - Connection Error (Error: ${error.stack ?? error})`);
+            }
+        }
+
+        return null;
+    } catch (error) {
+        log.error(`MySQL - Connection error (error: ${error.stack ?? error})`);
         return null;
     }
 };
@@ -157,7 +158,7 @@ mysql._getConnection = async (connectionType) => {
  * @param {object} process query method list
  * @returns {object} 성공 여부, commit 여부
  */
-mysql._transactionStatement = (process) => {
+mysql._transactionStatement = function (process) {
     return new Promise(async (resolve, _) => {
         let connection;
         let rollbackDisabled;

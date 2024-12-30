@@ -11,6 +11,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const glob = require("glob");
+const jwt = require("jsonwebtoken");
 const CONFIG = global.CONFIG;
 
 util.sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -189,6 +190,32 @@ util.combineURL = function (baseURL, ...relativeURLs) {
 
     return url;
 };
+
+util.createJWT = function (tokenData) {
+    let token = {};
+    let accessToken = jwt.sign(
+        {
+            id: tokenData.id,
+            email: tokenData.email,
+        },
+        CONFIG.jwt.secret,
+        { expiresIn: CONFIG.jwt.accessExp },
+    );
+
+    let refreshToken = jwt.sign(
+        {
+            id: tokenData.id,
+            email: tokenData.email,
+        },
+        CONFIG.jwt.secret,
+        { expiresIn: CONFIG.jwt.refreshExp },
+    );
+
+    token.accessToken = accessToken;
+    token.refreshToken = refreshToken;
+
+    return token;
+}
 
 JSON.emptyObject = JSON.stringify({});
 JSON.emptyArray = JSON.stringify([]);

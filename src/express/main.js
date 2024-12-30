@@ -113,7 +113,6 @@ express.init = () => {
             });
 
             webServer.use(express.validateTimestamp);
-
             // 라우터 파일 전체 로드를 위해 폴더 스캔
             let routerFiles = await util.getFilesInDirectoryDeep(
                 path.join(
@@ -121,8 +120,8 @@ express.init = () => {
                     "src",
                     "express",
                     "router",
-                    "**/index.js"
-                )
+                    "**/*.js"
+                ).replace(/\\/g, '/')
             );
 
             let routers = engine.Router();

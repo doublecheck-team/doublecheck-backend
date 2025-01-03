@@ -14,7 +14,7 @@ const moment = require("moment-timezone");
 const expressValidator = require("express-validator");
 const validationHandler = require("./validationHandler");
 const errorCode = require("./errorCode");
-const { util, log } = require("../util");
+const { util, log, verify } = require("../util");
 const CONFIG = global.CONFIG;
 
 /**
@@ -113,7 +113,6 @@ express.init = () => {
             });
 
             webServer.use(express.validateTimestamp);
-
             // 라우터 파일 전체 로드를 위해 폴더 스캔
             let routerFiles = await util.getFilesInDirectoryDeep(
                 path.join(
@@ -121,8 +120,8 @@ express.init = () => {
                     "src",
                     "express",
                     "router",
-                    "**/index.js"
-                )
+                    "**/*.js"
+                ).replace(/\\/g, '/')
             );
 
             let routers = engine.Router();
@@ -227,8 +226,7 @@ express.init = () => {
                 util,
                 moment,
                 { ...expressValidator, validationHandler },
-                CONFIG.defaultLanguage,
-                CONFIG.database.schema,
+                verify
             ];
 
             // 루프를 통해 router 폴더 내의 모든 라우터 파일 로드

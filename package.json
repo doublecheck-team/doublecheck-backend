@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "nodemon": "nodemon ./src/main.js",
-    "local": "pm2 start ./ecosystem.config.js --only service-local"
+    "local": "pm2 start ./ecosystem.config.js --only service-local",
+    "dev": "pm2 start ./ecosystem.config.js --only service-dev",
+    "prod": "pm2 start .ecosystem.config.js --only service-prod"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,7 @@
     "express-validator": "^7.2.0",
     "glob": "^11.0.0",
     "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.5.46",
     "mysql2": "^3.11.4",
     "path": "^0.12.7",

@@ -16,7 +16,7 @@ module.exports.router = function (mysql, util, moment, { validatioinResult, vali
      */
     this.POST("token", tokenValidator, verify.refreshVerify, async (req, res) => {
         try {
-            let data = matchedData(req);
+            let reqData = matchedData(req);
 
             let token = util.createJWT(reqData.userInfo);
 

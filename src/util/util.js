@@ -217,6 +217,24 @@ util.createJWT = function (tokenData) {
     return token;
 }
 
+util.getUserInfo = function (getUserData) {
+    let userInfo = getUserData.data.kakao_account;
+
+    return {
+        email: userInfo.email,
+        nickName: userInfo.profile.nickname,
+        profile: userInfo.profile.profile_image_url || null,
+        age: userInfo.birthyear && userInfo.birthday ? calculateAge(userInfo.birthyear + userInfo.birthday) : null,
+        gender: userInfo.gender ? (userInfo.gender === "male" ? 1 : 2) : null,
+    };
+};
+
+
+function calculateAge(birthday) {
+    return moment().diff(moment(birthday, "YYYYMMDD"), "years");
+};
+ 
+
 JSON.emptyObject = JSON.stringify({});
 JSON.emptyArray = JSON.stringify([]);
 

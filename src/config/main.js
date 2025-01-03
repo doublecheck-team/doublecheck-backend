@@ -62,6 +62,12 @@ const config = {
         client_id: process.env.CLIENT_ID,
         redirect_uri: process.env.REDIRECT_URI,
     },
+
+    jwt: {
+        secret: process.env.JWT_SECRET,
+        accessExp: process.env.JWT_REFRESH_EXP,
+        refreshExp: process.env.JWT_ACCESS_EXP
+    }
 }
 
 

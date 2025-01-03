@@ -14,7 +14,7 @@ const moment = require("moment-timezone");
 const expressValidator = require("express-validator");
 const validationHandler = require("./validationHandler");
 const errorCode = require("./errorCode");
-const { util, log } = require("../util");
+const { util, log, verify } = require("../util");
 const CONFIG = global.CONFIG;
 
 /**
@@ -227,7 +227,7 @@ express.init = () => {
                 moment,
                 { ...expressValidator, validationHandler },
                 CONFIG.defaultLanguage,
-                CONFIG.database.schema,
+                verify
             ];
 
             // 루프를 통해 router 폴더 내의 모든 라우터 파일 로드

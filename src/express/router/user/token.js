@@ -5,7 +5,7 @@
 
 const userTokenQuery = require("../../query/user/token");
 
-module.exports.router = function (mysql, util, moment, { validatioinResult, validationHandler, body ,query, header }, verify ) {
+module.exports.router = function (mysql, util, moment, { matchedData, validatioinResult, validationHandler, body ,query, header }, verify ) {
     this.PREFIX = 'user';
 
     const tokenValidator = [header("authorization").notEmpty().isString(), validationHandler.handle];

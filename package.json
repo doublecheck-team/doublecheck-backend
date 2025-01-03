@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "nodemon": "nodemon ./src/main.js",
-    "local": "pm2 start ./ecosystem.config.js --only service-local"
+    "local": "pm2 start ./ecosystem.config.js --only service-local",
+    "dev": "pm2 start ./ecosystem.config.js --only service-dev",
+    "prod": "pm2 start .ecosystem.config.js --only service-prod"
   },
   "repository": {
     "type": "git",

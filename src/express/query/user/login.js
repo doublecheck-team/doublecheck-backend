@@ -3,7 +3,7 @@
  */
 "use strict"
 
-const schema = config.database.schema;
+const schema = CONFIG.database.schema;
 
 module.exports = {
     

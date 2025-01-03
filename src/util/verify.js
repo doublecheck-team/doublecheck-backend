@@ -17,7 +17,7 @@ module.exports = {
 
         let token = authHeader.split(" ")[1];
 
-        jwt.verify(token, CONFIG.jwt.secret), (error, userInfo) => {
+        jwt.verify(token, CONFIG.jwt.secret, (error, userInfo) => {
             if (error) {
                 if (error.name === "TokenExpiredError") {
                     res.failResponse("AuthorizationExpired");
@@ -31,7 +31,7 @@ module.exports = {
             req.userInfo = userInfo;
 
             next();
-        };
+        });
     },
 
     refreshVerify: (req, res, next) => {
@@ -44,7 +44,7 @@ module.exports = {
 
         let token = authHeader.split(" ")[1];
 
-        jwt.verify(token, CONFIG.jwt.secret), (error, userInfo) => {
+        jwt.verify(token, CONFIG.jwt.secret, (error, userInfo) => {
             if (error) {
                 if (error.name === "TokenExpiredError") {
                     res.failResponse("AuthorizationFailed");
@@ -58,6 +58,6 @@ module.exports = {
             req.userInfo = userInfo;
 
             next();
-        };
+        });
     },
 };

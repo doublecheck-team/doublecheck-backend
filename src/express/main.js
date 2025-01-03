@@ -226,7 +226,6 @@ express.init = () => {
                 util,
                 moment,
                 { ...expressValidator, validationHandler },
-                CONFIG.defaultLanguage,
                 verify
             ];
 

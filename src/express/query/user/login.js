@@ -3,17 +3,19 @@
  */
 "use strict"
 
+const schema = config.database.schema;
+
 module.exports = {
     
     userInfo: () => `
         SELECT key_user AS keyUser, email, nick, gender, age, profile
-        FROM user
+        FROM ${schema}.user
         WHERE email = ?
         ;
     `,
 
     joinUser: () => `
-        INSERT INTO user
+        INSERT INTO ${schema}.user
         (email, gender, age, profile)
         VALUES
         (?, ?, ?, ?);
@@ -22,15 +24,15 @@ module.exports = {
     `,
 
     tokenUser: () => `
-        INSERT INTO verification
+        INSERT INTO ${schema}.user
         (key_user, token)
         VALUES
         (?, ?);
     `,
 
     inputToken: () => `
-        UPDATE verification
+        UPDATE ${schema}.user
         SET token = ?
         WHERE key_user = ?;
     `
-}
+};

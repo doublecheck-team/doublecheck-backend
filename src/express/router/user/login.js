@@ -3,14 +3,14 @@
  */
 "use strict"
 
-const axiox = require("axios");
+const axios = require("axios");
 const userLoginQuery = require("../../query/user/login");
 
 
-module.exports.router = function (mysql, util, moment, { matchedData, validationResult, validationHandler, body, query, header }, schema ) {
+module.exports.router = function (mysql, util, moment, { matchedData, validationResult, validationHandler, body, query, header }, verify) {
     this.PREFIX = 'user';
 
-    const loginValidator = [header("aauthorization").notEmpty().isString(), validationHandler.handle];
+    const loginValidator = [header("authorization").notEmpty().isString(), validationHandler.handle];
 
     /**
      * no. 2001
